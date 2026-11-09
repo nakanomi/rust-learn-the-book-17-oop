@@ -60,7 +60,6 @@ impl State for Draft {
     }
 
     fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
-        post.content = String::new();
         self
     }
 }
@@ -76,7 +75,8 @@ impl State for PendingReview {
         Box::new(Published{})
     }
     fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
-        self
+       post.content = String::new();
+       Box::new(Draft{})
     }
 }
 
