@@ -27,7 +27,7 @@ fn main() {
             }),
             Box::new(Button{
                 width: 50,
-                height: 10m,
+                height: 10,
                 label: String::from("Ok"),
 
             }),
