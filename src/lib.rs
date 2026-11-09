@@ -20,6 +20,12 @@ impl Post {
         self.state.as_ref().unwrap().content(self)
     }
 
+    pub fn reject(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.reject(self))
+        }
+    }
+
     pub fn request_review(&mut self) {
         if let Some(s) = self.state.take() {
             self.state = Some(s.request_review())
@@ -39,6 +45,7 @@ trait  State {
     fn content<'a>(&self, post: &'a Post) ->&'a str {
         ""
     }
+    fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State>;
 }
 
 struct Draft {}
@@ -49,6 +56,11 @@ impl State for Draft {
     }
 
     fn approve(self: Box<Self>)-> Box<dyn State> {
+        self
+    }
+
+    fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
+        post.content = String::new();
         self
     }
 }
@@ -62,6 +74,9 @@ impl State for PendingReview {
 
     fn approve(self: Box<Self>)-> Box<dyn State> {
         Box::new(Published{})
+    }
+    fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
+        self
     }
 }
 
@@ -78,5 +93,8 @@ impl State for Published {
 
     fn content<'a>(&self, post: &'a Post) ->&'a str {
         &post.content
+    }
+    fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
+        self
     }
 }
