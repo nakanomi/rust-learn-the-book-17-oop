@@ -37,6 +37,13 @@ impl Post {
             self.state = Some(s.approve())
         }
     }
+
+    pub fn debug_state(&self) -> &str {
+        match &self.state {
+            Some(s) => s.type_name(),
+            None => "None",
+        }
+    }
 }
 
 trait  State {
@@ -46,6 +53,8 @@ trait  State {
         ""
     }
     fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State>;
+    // デバッグ用に自分の型名を返すメソッド（デフォルト実装）
+    fn type_name(&self) -> &'static str;
 }
 
 struct Draft {}
@@ -63,6 +72,10 @@ impl State for Draft {
         post.content = String::new();
         self
     }
+
+    fn type_name(&self) -> &'static str {
+        "Draft"
+    }
 }
 
 struct PendingReview {}
@@ -77,6 +90,9 @@ impl State for PendingReview {
     }
     fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
         self
+    }
+    fn type_name(&self) -> &'static str {
+        "PendingReview"
     }
 }
 
@@ -96,5 +112,8 @@ impl State for Published {
     }
     fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
         self
+    }
+    fn type_name(&self) -> &'static str {
+        "Published"
     }
 }
