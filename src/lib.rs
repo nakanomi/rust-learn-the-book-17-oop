@@ -1,4 +1,4 @@
-
+use std::any::type_name;
 pub struct  Post {
     content : String,
 }
@@ -51,3 +51,35 @@ impl PublishedPost {
     }
     
 }
+/*
+pub trait StateName {
+    fn type_name(&self) -> &'static str;
+}
+
+/// Stateかつ、ある程度の条件を備えた構造体に対してのStateNameの実装
+impl <T: Sized + 'static> StateName for T {
+    fn type_name(&self) -> &'static str {
+        let full_name = std::any::type_name_of_val(self);
+        full_name.split("::").last().unwrap()
+    }
+}
+     */
+
+pub trait CanGetName {
+    fn name() -> &'static str
+    where 
+        Self:Sized,
+        {
+            type_name::<Self>()
+        }
+    fn type_name(&self)->&'static str {
+        let full_name = type_name::<Self>();
+        full_name.split("::").last().unwrap()
+    }
+}
+
+impl CanGetName for DraftPost {}
+
+impl CanGetName for PendingReviewPost {}
+
+impl CanGetName for PublishedPost {}
