@@ -16,6 +16,8 @@ impl Post {
         if let Some(s) = &self.state {
             if (*s).is_rewritable() {
                 self.content.push_str(text);
+            } else {
+                println!("This post cannot be edited from its current state.")
             }
 
         }
