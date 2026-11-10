@@ -1,69 +1,4 @@
-use std::result;
-
-
-pub struct AverageCollection {
-    list : Vec<i32>,
-    average : f64,
-}
-
-impl AverageCollection {
-    pub fn add(&mut self, value : i32) {
-        self.list.push(value);
-        self.update_average();
-    }
-    pub fn remove(&mut self) ->Option<i32> {
-        let result = self.list.pop();
-        match result {
-            Some(value) => {
-                self.update_average();
-                Some(value)
-            },
-            None => None,
-        }
-    }
-
-    pub fn average(&self) -> f64 {
-        self.average
-    }
-
-    fn update_average(&mut self) {
-        let total : i32 = self.list.iter().sum();
-        self.average = total as f64 / self.list.len() as f64;
-    }
-    
-}
-
-
-pub trait Draw {
-    fn draw(&self);
-}
-
-pub struct Screen {
-    pub components: Vec<Box<dyn Draw>>,
-}
-
-impl Screen
-{
-    pub fn run(&self) {
-        for component in self.components.iter() {
-            component.draw();
-        }
-    }
-}
-
-pub struct Button {
-    pub width: u32,
-    pub height: u32,
-    pub label: String,
-}
-
-impl Draw for Button {
-    fn draw(&self) {
-        // 実際にボタンを描画するコード
-    }
-    
-}
-
+use std::any::type_name;
 pub struct Post {
     state: Option<Box<dyn State>>,
     content: String,
@@ -78,11 +13,24 @@ impl Post {
     }
 
     pub fn add_text(&mut self, text: &str) {
-        self.content.push_str(text);
+        if let Some(s) = &self.state {
+            if (*s).is_rewritable() {
+                self.content.push_str(text);
+            } else {
+                println!("This post cannot be edited from its current state.")
+            }
+
+        }
     }
 
     pub fn content(&self) -> &str {
         self.state.as_ref().unwrap().content(self)
+    }
+
+    pub fn reject(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.reject(self))
+        }
     }
 
     pub fn request_review(&mut self) {
@@ -96,13 +44,37 @@ impl Post {
             self.state = Some(s.approve())
         }
     }
+
+    pub fn debug_state(&self) -> &str {
+        match &self.state {
+            Some(s) => (*s).type_name(),
+            None => "None",
+        }
+    }
 }
 
-trait  State {
+/// 名前を取得するトレイト
+pub trait StateName {
+    fn type_name(&self) -> &'static str;
+}
+/// ステートトレイト
+trait  State : StateName {
     fn request_review(self: Box<Self>) -> Box<dyn State>;
     fn approve(self: Box<Self>)-> Box<dyn State>;
     fn content<'a>(&self, post: &'a Post) ->&'a str {
         ""
+    }
+    fn is_rewritable(&self) -> bool {
+        true
+    }
+    fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State>;
+}
+
+/// Stateかつ、ある程度の条件を備えた構造体に対してのStateNameの実装
+impl <T: State + Sized + 'static> StateName for T {
+    fn type_name(&self) -> &'static str {
+        let full_name = std::any::type_name_of_val(self);
+        full_name.split("::").last().unwrap()
     }
 }
 
@@ -116,6 +88,11 @@ impl State for Draft {
     fn approve(self: Box<Self>)-> Box<dyn State> {
         self
     }
+
+    fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
+        self
+    }
+
 }
 
 struct PendingReview {}
@@ -126,7 +103,25 @@ impl State for PendingReview {
     }
 
     fn approve(self: Box<Self>)-> Box<dyn State> {
+        Box::new(OneReviewed{})
+    }
+    fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
+       post.content = String::new();
+       Box::new(Draft{})
+    }
+}
+
+struct OneReviewed {}
+
+impl State for OneReviewed {
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+    fn approve(self: Box<Self>)-> Box<dyn State> {
         Box::new(Published{})
+    }
+    fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
+        self
     }
 }
 
@@ -143,5 +138,11 @@ impl State for Published {
 
     fn content<'a>(&self, post: &'a Post) ->&'a str {
         &post.content
+    }
+    fn is_rewritable(&self) -> bool {
+        false
+    }
+    fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
+        self
     }
 }
