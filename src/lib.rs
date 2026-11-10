@@ -53,13 +53,17 @@ trait  State {
         ""
     }
     fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State>;
-    // デバッグ用に自分の型名を返すメソッド（デフォルト実装）
+}
+
+pub trait StateName {
     fn type_name(&self) -> &'static str;
 }
 
-fn short_name<T>() -> &'static str {
-    let full_name = type_name::<T>();
-    full_name.split("::").last().unwrap()
+impl <T: State + ?Sized + 'static> StateName for T {
+    fn type_name(&self) -> &'static str {
+        let full_name = std::any::type_name_of_val(self);
+        full_name.split("::").last().unwrap()
+    }
 }
 
 struct Draft {}
@@ -77,9 +81,6 @@ impl State for Draft {
         self
     }
 
-    fn type_name(&self) -> &'static str {
-        short_name::<Self>()
-    }
 }
 
 struct PendingReview {}
@@ -95,9 +96,6 @@ impl State for PendingReview {
     fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
        post.content = String::new();
        Box::new(Draft{})
-    }
-    fn type_name(&self) -> &'static str {
-        short_name::<Self>()
     }
 }
 
@@ -117,8 +115,5 @@ impl State for Published {
     }
     fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
         self
-    }
-    fn type_name(&self) -> &'static str {
-        short_name::<Self>()
     }
 }
