@@ -29,5 +29,8 @@ fn main() {
     assert_eq!("I ate a salad for breakfast today.", post.content());
     assert_eq!("Published", post.debug_state());
 
+    post.add_text("test rewrite after Published");
+    assert_eq!("I ate a salad for breakfast today.", post.content());
+
 }
 

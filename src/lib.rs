@@ -13,7 +13,12 @@ impl Post {
     }
 
     pub fn add_text(&mut self, text: &str) {
-        self.content.push_str(text);
+        if let Some(s) = &self.state {
+            if (*s).is_rewritable() {
+                self.content.push_str(text);
+            }
+
+        }
     }
 
     pub fn content(&self) -> &str {
@@ -40,26 +45,31 @@ impl Post {
 
     pub fn debug_state(&self) -> &str {
         match &self.state {
-            Some(s) => s.type_name(),
+            Some(s) => (*s).type_name(),
             None => "None",
         }
     }
 }
 
-trait  State {
+/// 名前を取得するトレイト
+pub trait StateName {
+    fn type_name(&self) -> &'static str;
+}
+/// ステートトレイト
+trait  State : StateName {
     fn request_review(self: Box<Self>) -> Box<dyn State>;
     fn approve(self: Box<Self>)-> Box<dyn State>;
     fn content<'a>(&self, post: &'a Post) ->&'a str {
         ""
     }
+    fn is_rewritable(&self) -> bool {
+        true
+    }
     fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State>;
 }
 
-pub trait StateName {
-    fn type_name(&self) -> &'static str;
-}
-
-impl <T: State + ?Sized + 'static> StateName for T {
+/// Stateかつ、ある程度の条件を備えた構造体に対してのStateNameの実装
+impl <T: State + Sized + 'static> StateName for T {
     fn type_name(&self) -> &'static str {
         let full_name = std::any::type_name_of_val(self);
         full_name.split("::").last().unwrap()
@@ -91,11 +101,25 @@ impl State for PendingReview {
     }
 
     fn approve(self: Box<Self>)-> Box<dyn State> {
-        Box::new(Published{})
+        Box::new(OneReviewed{})
     }
     fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
        post.content = String::new();
        Box::new(Draft{})
+    }
+}
+
+struct OneReviewed {}
+
+impl State for OneReviewed {
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+    fn approve(self: Box<Self>)-> Box<dyn State> {
+        Box::new(Published{})
+    }
+    fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
+        self
     }
 }
 
@@ -112,6 +136,9 @@ impl State for Published {
 
     fn content<'a>(&self, post: &'a Post) ->&'a str {
         &post.content
+    }
+    fn is_rewritable(&self) -> bool {
+        false
     }
     fn reject(self: Box<Self>, post: &mut Post)-> Box<dyn State> {
         self
