@@ -1,4 +1,4 @@
-
+use std::any::type_name;
 pub struct Post {
     state: Option<Box<dyn State>>,
     content: String,
@@ -57,6 +57,11 @@ trait  State {
     fn type_name(&self) -> &'static str;
 }
 
+fn short_name<T>() -> &'static str {
+    let full_name = type_name::<T>();
+    full_name.split("::").last().unwrap()
+}
+
 struct Draft {}
 
 impl State for Draft {
@@ -73,7 +78,7 @@ impl State for Draft {
     }
 
     fn type_name(&self) -> &'static str {
-        "Draft"
+        short_name::<Self>()
     }
 }
 
@@ -92,7 +97,7 @@ impl State for PendingReview {
        Box::new(Draft{})
     }
     fn type_name(&self) -> &'static str {
-        "PendingReview"
+        short_name::<Self>()
     }
 }
 
@@ -114,6 +119,6 @@ impl State for Published {
         self
     }
     fn type_name(&self) -> &'static str {
-        "Published"
+        short_name::<Self>()
     }
 }
