@@ -1,36 +1,21 @@
-use oop1::Post;
+use oop1::{Post, CanGetName};
 
 fn main() {
     let mut post = Post::new();
 
     post.add_text("I ate a salad for lunch today.");
-    assert_eq!("", post.content());
-    assert_eq!("Draft", post.debug_state());
 
-    post.request_review();
-    assert_eq!("", post.content());
-    assert_eq!("PendingReview", post.debug_state());
+    println!("type_name:{}", post.type_name());
+    
 
-    post.reject();
-    assert_eq!("Draft", post.debug_state());
+    let post = post.request_review();
+    println!("type_name:{}", post.type_name());
 
-    post.add_text("I ate a salad for breakfast today.");
-    assert_eq!("Draft", post.debug_state());
+    let post = post.approve();
+    println!("type_name:{}", post.type_name());
 
-    post.request_review();
-    assert_eq!("PendingReview", post.debug_state());
-    assert_eq!("", post.content());
+    println!("Post:{}", post.content());
 
-    post.approve();
-    assert_eq!("OneReviewed", post.debug_state());
-    assert_eq!("", post.content());
-
-    post.approve();
-    assert_eq!("I ate a salad for breakfast today.", post.content());
-    assert_eq!("Published", post.debug_state());
-
-    post.add_text("test rewrite after Published");
-    assert_eq!("I ate a salad for breakfast today.", post.content());
 
 }
 
